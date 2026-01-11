@@ -1,41 +1,31 @@
-import datetime
+from datetime import datetime
+import requests
 from celery import shared_task
-from gql import gql, Client
-from gql.transport.requests import RequestsHTTPTransport
 
 @shared_task
 def generate_crm_report():
-    transport = RequestsHTTPTransport(url="http://localhost:8000/graphql")
-    client = Client(transport=transport, fetch_schema_from_transport=True)
-
-    # GraphQL Query for report data
-    query = gql("""
+    url = "http://localhost:8000/graphql"
+    query = """
     query {
       allCustomers { edges { node { id } } }
-      allOrders {
-        edges {
-          node {
-            totalAmount
-          }
-        }
-      }
+      allOrders { edges { node { totalAmount } } }
     }
-    """)
+    """
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    log_file = "/tmp/crm_report_log.txt"
 
     try:
-        result = client.execute(query)
+        response = requests.post(url, json={'query': query})
+        result = response.json()
         
-        customers_count = len(result['allCustomers']['edges'])
-        orders = result['allOrders']['edges']
-        orders_count = len(orders)
-        total_revenue = sum(float(o['node']['totalAmount']) for o in orders)
+        customers = len(result['data']['allCustomers']['edges'])
+        orders_data = result['data']['allOrders']['edges']
+        orders_count = len(orders_data)
+        total_revenue = sum(float(o['node']['totalAmount']) for o in orders_data)
 
-        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        log_message = f"{timestamp} - Report: {customers_count} customers, {orders_count} orders, {total_revenue} revenue\n"
-
-        with open('/tmp/crm_report_log.txt', 'a') as f:
-            f.write(log_message)
-            
+        log_entry = f"{timestamp} - Report: {customers} customers, {orders_count} orders, {total_revenue} revenue\n"
+        with open(log_file, "a") as f:
+            f.write(log_entry)
     except Exception as e:
-        with open('/tmp/crm_report_log.txt', 'a') as f:
-            f.write(f"Error generating report: {str(e)}\n")
+        with open(log_file, "a") as f:
+            f.write(f"{timestamp} - Error: {str(e)}\n")
