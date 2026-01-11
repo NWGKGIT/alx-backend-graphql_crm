@@ -162,9 +162,27 @@ class Query(graphene.ObjectType):
     all_customers = DjangoFilterConnectionField(CustomerType)
     all_products = DjangoFilterConnectionField(ProductType)
     all_orders = DjangoFilterConnectionField(OrderType)
+class UpdateLowStockProducts(graphene.Mutation):
+    products = graphene.List(ProductType)
+    success_message = graphene.String()
 
+    def mutate(self, info):
+        # Filter stock < 10
+        low_stock = Product.objects.filter(stock__lt=10)
+        updated_products = []
+        
+        for product in low_stock:
+            product.stock += 10
+            product.save()
+            updated_products.append(product)
+            
+        return UpdateLowStockProducts(
+            products=updated_products,
+            success_message="Products restocked successfully"
+        )
 class Mutation(graphene.ObjectType):
     create_customer = CreateCustomer.Field()
     bulk_create_customers = BulkCreateCustomers.Field()
     create_product = CreateProduct.Field()
     create_order = CreateOrder.Field()
+    update_low_stock_products = UpdateLowStockProducts.Field()
