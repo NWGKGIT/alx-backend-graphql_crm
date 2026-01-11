@@ -1,9 +1,26 @@
-# CRM Project Setup
+# CRM Setup and Task Automation
 
-### Setup Instructions
-1. **Install Redis**: Install redis-server on your machine.
-2. **Install dependencies**: Run `pip install -r requirements.txt`.
-3. **Run migrations**: Run `python manage.py migrate`.
-4. **Start Celery worker**: Run `celery -A crm worker -l info`.
-5. **Start Celery Beat**: Run `celery -A crm beat -l info`.
-6. **Verify logs**: Check `/tmp/crm_report_log.txt` for the generated report.
+This project uses Celery and Celery Beat to automate CRM reports.
+
+## Setup Instructions
+
+1. **Install Redis and dependencies**:
+   - Install Redis: `sudo apt install redis-server`
+   - Install dependencies: `pip install celery redis django-celery-beat`
+
+2. **Run migrations**:
+   - `python manage.py migrate`
+
+3. **Start Celery worker**:
+   - `celery -A crm worker -l info`
+
+4. **Start Celery Beat**:
+   - `celery -A crm beat -l info`
+
+5. **Verify logs**:
+   - Check the generated report at: `/tmp/crm_report_log.txt`
+
+## Tasks Documentation
+- The `generate_crm_report` task runs every Monday at 6:00 AM.
+- It queries the GraphQL endpoint for customers, orders, and revenue.
+- Outputs results to the log file with a timestamp.
